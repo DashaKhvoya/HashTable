@@ -1,181 +1,182 @@
-# Оптимизация хэш таблицы #
-## 1. Аннотация ##
-В этой работе я исследую 7 различных хэш функций на оптимальность распределения по bucket'ам. Далее я попытаюсь оптимизировать свой код с помощью ассемблерных вставок, выявив наиболее долгие по времени работы функции.
+# Hash Table Optimization #
+## 1. Abstract ##
+In this paper, I investigate 7 different hash functions for optimal bucket distribution. Next, I will attempt to optimize my code using inline assembly, having identified the most time-consuming functions.
 
-Будут предложены следующие хэш функции:
+The following hash functions will be proposed:
 
-1. Константный хэш
-2. Хэш, равный длине слова
-3. Хэш, возвращающий ASCII код 1-го символа
-4. Контрольное сумма (сумма ASCII кодов)
+1. Constant hash
+2. Hash equal to word length
+3. Hash returning the ASCII code of the 1st character
+4. Checksum (sum of ASCII codes)
 5. ROR-Hash
 6. ROL-Hash
 7. CRC32
 
-Работа хэш функций проверяется с помощью англо-русского словаря. Для анализа наиболее медленных функций используется [Callgrind profile with KCacheGrind](https://baptiste-wicht.com/posts/2011/09/profile-c-application-with-callgrind-kcachegrind.html).
+The performance of the hash functions is tested using an English-Russian dictionary. To analyze the slowest functions, [Callgrind profile with KCacheGrind](https://baptiste-wicht.com/posts/2011/09/profile-c-application-with-callgrind-kcachegrind.html) is used.
 
-## 2. Исследование хэш функций ##
+## 2. Investigation of Hash Functions ##
 
-Алгоритм работы хэш таблицы:
-1. Читаем слово из словаря
-2. Для каждого слова вычисляем хэш
-3. Добавляем по вычисленному хэшу наш элемент в хэш таблицу
-4. Если по данному хэшу уже есть элемент, то привязываем наш элемент к последнему в данном bucket'е
+Hash table algorithm:
 
-Для лучшего понимания можно посмотреть сюда:
+1. Read a word from the dictionary
+2. Calculate the hash for each word
+3. Add our element to the hash table based on the calculated hash
+4. If there is already an element at this hash, we append our element to the last one in the given bucket
+
+For a better understanding, you can look here:
 
 ![](HashTable.png)
 
-**Рисунок 1.**
+**Figure 1.**
 
-### 2.1. Константный хэш ###
+### 2.1. Constant Hash ###
 
-Хэш всегда возвращает 1.
+The hash always returns 1.
 
 ![](graph1.png)
 
-**Рисунок 2.1.1.**
-**Зависимость количества элементов в bucket'е от номера buсket'а.**
+**Figure 2.1.1.**
+**Dependence of the number of elements in a bucket on the bucket number.**
 
-Масштаб по оси x увеличен в 30 раз, чтобы лучше было видно пик.
+The scale on the x-axis is increased 30 times to make the peak more visible.
 
 ![](gist1.png)
 
-**Рисунок 2.1.2.**
-**Распределение.**
+**Figure 2.1.2.**
+**Distribution.**
 
-### 2.2. Хэш, равный длине слова ###
+### 2.2. Hash Equal to Word Length ###
 
-Хэш функция возвращает длину элемента (слова).
+The hash function returns the length of the element (word).
 
 ![](graph2.png)
 
-**Рисунок 2.2.1.**
-**Зависимость количества элементов в bucket'е от номера buсket'а.**
+**Figure 2.2.1.**
+**Dependence of the number of elements in a bucket on the bucket number.**
 
-Масштаб по оси x увеличен в 30 раз, чтобы лучше было видно пик.
+The scale on the x-axis is increased 30 times to make the peak more visible.
 
 ![](gist2.png)
 
-**Рисунок 2.2.2.**
-**Распределение.**
+**Figure 2.2.2.**
+**Distribution.**
 
-### 2.3. Хэш, возвращающий ASCII код 1-го символа ###
+### 2.3. Hash Returning the ASCII Code of the 1st Character ###
 
-Хэш функция возвращает ASCII код 1-го символа.
+The hash function returns the ASCII code of the 1st character.
 
 ![](graph3.png)
 
-**Рисунок 2.3.1.**
-**Зависимость количества элементов в bucket'е от номера buсket'а.**
+**Figure 2.3.1.**
+**Dependence of the number of elements in a bucket on the bucket number.**
 
-Масштаб по оси x увеличен в 30 раз, чтобы лучше было видно пик.
+The scale on the x-axis is increased 30 times to make the peak more visible.
 
 ![](gist3.png)
 
-**Рисунок 2.3.2.**
-**Распределение.**
+**Figure 2.3.2.**
+**Distribution.**
 
-### 2.4. Контрольное сумма ###
+### 2.4. Checksum ###
 
-Хэш функция возвращает сумму ASCII кодов всех символов слова.
+The hash function returns the sum of the ASCII codes of all characters in the word.
 
 ![](graph4.png)
 
-**Рисунок 2.4.1.**
-**Зависимость количества элементов в bucket'е от номера buсket'а.**
+**Figure 2.4.1.**
+**Dependence of the number of elements in a bucket on the bucket number.**
 
 ![](gist4.png)
 
-**Рисунок 2.4.2.**
-**Распределение.**
+**Figure 2.4.2.**
+**Distribution.**
 
-### 2.5. ROR хэш ###
+### 2.5. ROR Hash ###
 
 Hash[0] = 0
 
 Hash[i + 1] = ror Hash[i] xor String[i]
 
-Хэш функция возвращает xor слова с его цикличиским побитовым сдвигом вправо.
+The hash function returns the XOR of the word with its cyclic bitwise right shift.
 
 ![](graph5.png)
 
-**Рисунок 2.5.1.**
-**Зависимость количества элементов в bucket'е от номера buсket'а.**
+**Figure 2.5.1.**
+**Dependence of the number of elements in a bucket on the bucket number.**
 
 ![](ROR.png)
 
-**Рисунок 2.5.2.**
-**Распределение.**
+**Figure 2.5.2.**
+**Distribution.**
 
-Для наглядности размер хэш таблицы уменьшин в 10 раз (для более плотного заполнения bucket'ов).
+For clarity, the size of the hash table was reduced by 10 times (for denser bucket filling).
 
-### 2.6. ROL хэш ###
+### 2.6. ROL Hash ###
 
 Hash[0] = 0
 
 Hash[i + 1] = rol Hash[i] xor String[i]
 
-Хэш функция возвращает xor слова с его цикличиским побитовым сдвигом влево.
+The hash function returns the XOR of the word with its cyclic bitwise left shift.
 
 ![](graph6.png)
 
-**Рисунок 2.6.1.**
-**Зависимость количества элементов в bucket'е от номера buсket'а.**
+**Figure 2.6.1.**
+**Dependence of the number of elements in a bucket on the bucket number.**
 
 ![](ROL.png)
 
-**Рисунок 2.6.2.**
-**Распределение.**
+**Figure 2.6.2.**
+**Distribution.**
 
-Для наглядности размер хэш таблицы уменьшин в 10 раз (для более плотного заполнения bucket'ов).
+For clarity, the size of the hash table was reduced by 10 times (for denser bucket filling).
 
 ### 2.7. CRC32 ###
 
 ![](graph7.png)
 
-**Рисунок 2.7.1.**
-**Зависимость количества элементов в bucket'е от номера buсket'а.**
+**Figure 2.7.1.**
+**Dependence of the number of elements in a bucket on the bucket number.**
 
 ![](CRC32.png)
 
-**Рисунок 2.7.2.**
-**Распределение.**
+**Figure 2.7.2.**
+**Distribution.**
 
-Для наглядности размер хэш таблицы уменьшин в 10 раз (для более плотного заполнения bucket'ов).
+For clarity, the size of the hash table was reduced by 10 times (for denser bucket filling).
 
-### 2.8. Выбор наиболее оптимальной хэш функции ###
+### 2.8. Choosing the Most Optimal Hash Function ###
 
-Как видно из графиков, CRC32 является наиболее эффективной хэш функцией. В ней наименьшее количество пустых bucket'ов, наиболее равномерное распределение элементов по bucket'ам и размер bucket'а составляет не больше 9-ти элементов. Гистограмма наиболее похожа на Гауссову кривую.
+As can be seen from the graphs, CRC32 is the most effective hash function. It has the smallest number of empty buckets, the most uniform distribution of elements across buckets, and a bucket size of no more than 9 elements. The histogram most closely resembles a Gaussian curve.
 
-Если же смотреть на остальные хэш функции, то можно сказать, что первые четыре хэш функции имеют множество пустых bucket'ов, к тому же у них много высоких пиков, они совсем не подходят для эффективного поиска в хэш таблице.  5-я и 6-я хэш функции уже получше, в них значительно меньше пустых bucket'ов, однако в ROL хэше имееются bucket'ы размера больше 9, а распределение элеметов не такое равномерное как у  CRC32 (у ROR хэша такие же проблемы, только более усугбленные).
+If we look at the other hash functions, we can say that the first four hash functions have many empty buckets, plus they have many high peaks; they are absolutely not suitable for efficient searching in a hash table. The 5th and 6th hash functions are much better, they have significantly fewer empty buckets, but the ROL hash has buckets of a size greater than 9, and the distribution of elements is not as uniform as that of CRC32 (the ROR hash has the same problems, only more aggravated).
 
-## 3. Анализ времени работы функций ##
+## 3. Function Execution Time Analysis ##
 
-Для того чтобы понять, какие функции хэш таблицы занимают наибольшее время работы, будем много раз находить перевод каждого слова в большом тексте. Теперь можно посмотреть на время работы, используя callgrind. 
+In order to understand which hash table functions take the most execution time, we will repeatedly find the translation of each word in a large text. Now we can look at the execution time using Callgrind.
 
 ![](callgrind.png)
 
-**Рисунок 3.**
-**Время работы функций.**
+**Figure 3.**
+**Function execution time.**
 
-Теперь видно, что наиболее долгие по времени работы функции - это ListSearch(который содержит в себе __strcmp_avx2) и HashFunction. Их мы и будем оптимизировать.
+Now it is clear that the most time-consuming functions are ListSearch (which contains __strcmp_avx2) and HashFunction. We will optimize them.
 
-## 4. Оптимизация ##
+## 4. Optimization ##
 
-Измерим время работы программы без оптимизаций c -O1 и с -O3 для дальнейших сравнений.
+Let's measure the program execution time without optimizations with -O1 and -O3 for further comparisons.
 
-| -O1, с   | -O3, c   |
+| -O1, s   | -O3, s   |
 |----------|----------|
 | 4.501829 | 4.136374 |
 
-**Таблица 1.**
+**Table 1.**
 
 ### 4.1. __strcmp_avx2 ###
 
-В первую очередь нам надо соптимизировать сравнение строк. Для этого есть хорошее решение - мы можем использовать AVX инструкции! 
+First of all, we need to optimize string comparison. There is a good solution for this - we can use AVX instructions!
 
-А теперь поподробнее. Заметим, что наши слова не превышают в размере 32-х байт. Тогда мы можем хранить ключевые слова в переменных типа __m256i. Теперь сравнение двух строк превращается в сравнение двух переменных __m256i, которое выполняется всего лишь одной инструкцией _mm256_cmpeq_epi8.
+And now in more detail. Note that our words do not exceed 32 bytes in size. Then we can store keywords in variables of type __m256i. Now the comparison of two strings turns into the comparison of two __m256i variables, which is performed by just one _mm256_cmpeq_epi8 instruction.
 
 ```c
   __m256i key = _mm256_loadu_si256((const __m256i*)pair->key);
@@ -193,22 +194,20 @@ Hash[i + 1] = rol Hash[i] xor String[i]
 }
 ```
 
-Измерим время работы после данной оптимизации.
+Let's measure the execution time after this optimization.
 
-| -O1, с   | -O3, c   |
+| -O1, s   | -O3, s   |
 |----------|----------|
 | 4.501829 | 4.136374 |
 | 3.899324 | 3.763011 |
 
-**Таблица 2.**
+**Table 2.**
 
-Таким образом, мы получили ускорение при -O1 на 15% и при -O3 на 10%.
+Thus, we achieved a speedup of 15% with -O1 and 10% with -O3.
 
 ### 4.2. ListSearch ###
 
-Давайте поймем, как работает функция ListSearch. Она получает на вход bucket и элемент, который в этом bucket'е нужно найти. Далее она проходится по всем элементам и сравнивает их с помощью встроенного strcmp, пока не найдет запрашиваемый элемент. Таким образом, чтобы оптимизировать ListSearch, мы можем переписать ее на ассемблере, используя векторные инструкции.
-
-
+Let's understand how the ListSearch function works. It receives a bucket and an element to be found in this bucket as input. Then it iterates through all the elements and compares them using the built-in strcmp until it finds the requested element. Thus, to optimize ListSearch, we can rewrite it in assembly using vector instructions.
 
 ```asm
 _ListSearch:  mov rax, [rdi]     
@@ -240,20 +239,20 @@ exit_true:    mov rdx, [rsi + 8]
 
 ```
 
-Измерим время работы после данной оптимизации.
+Let's measure the execution time after this optimization.
 
-| -O1, с   | -O3, c   |
+| -O1, s   | -O3, s   |
 |----------|----------|
 | 3.899324 | 3.763011 |
 | 3.695025 | 3.585601 |
 
-**Таблица 3.**
+**Table 3.**
 
-Таким образом, мы получили замедление при -O1 на 6% и при -O3 на 5%.
+Thus, we observed a slowdown of 6% with -O1 and 5% with -O3.
 
 ### 4.3. HashFunction ###
 
-Теперь нам нужно оптимизировать CRC32. Для этого в ассемблере существует встроенная инструкция по вычислению CRC32.  
+Now we need to optimize CRC32. For this, there is a built-in assembly instruction for calculating CRC32.  
 
 ```c
 size_t HashFunction(Pair* pair) {
@@ -281,35 +280,29 @@ size_t HashFunction(Pair* pair) {
 }
 ```
 
-Измерим время работы после данной оптимизации.
+Let's measure the execution time after this optimization.
 
-| -O1, с   | -O3, c   |
+| -O1, s   | -O3, s   |
 |----------|----------|
 | 3.695025 | 3.585601 |
 | 3.311672 | 3.273021 |
 
-**Таблица 4.**
+**Table 4.**
 
-Таким образом, мы получили ускорение при -O1 на 12% и при -O3 на 10%.
+Thus, we achieved a speedup of 12% with -O1 and 10% with -O3.
 
- ## 5. Заключение ##
+ ## 5. Conclusion ##
 
-  Наконец-то, давайте сравним время работы нашей изначальной хэш таблицы (без каких-либо оптимизаций) и оптимизированной хэш таблицы. 
+  Finally, let's compare the execution time of our initial hash table (without any optimizations) and the optimized hash table.
 
-|                                                     | -O1, с   | -O3, c   |
-|-----------------------------------------------------|----------|----------|
-| Без оптимизаций                                     | 4.501829 | 4.036374 |
-| AVX инструкции                                      | 3.899324 | 3.673011 |
-| ListSearch + AVX инструкции                         | 3.695025 | 3.585601 |
-| ListSearch + AVX инструкции + СRC32 оптимизированный| 3.311672 | 3.273021 |
+|                                                 | -O1, s   | -O3, s   |
+|-------------------------------------------------|----------|----------|
+| Without optimizations                           | 4.501829 | 4.136374 |
+| AVX instructions                                | 3.899324 | 3.673011 |
+| ListSearch + AVX instructions                   | 3.695025 | 3.585601 |
+| ListSearch + AVX instructions + optimized CRC32 | 3.311672 | 3.273021 |
 
 
-**Таблица 5.**
+**Table 5.**
 
- В итоге мне удалось повысить производительность хэш таблицы на 36% (с -O1) и на 23% (с -O3). 
-
-Осталось посчитать коэффициент ded32 [🙀](https://static.probusiness.io/n/03/d/38097027_439276526579800_2735888197547458560_n.jpg)[🙀](https://ru.meming.world/images/ru/thumb/e/ef/%D0%9F%D0%BB%D0%B0%D1%87%D1%83%D1%89%D0%B8%D0%B9_%D0%BA%D0%BE%D1%82_%D1%81_%D0%BF%D0%B0%D0%BB%D1%8C%D1%86%D0%B5%D0%BC_%D0%B2%D0%B2%D0%B5%D1%80%D1%85_%D1%88%D0%B0%D0%B1%D0%BB%D0%BE%D0%BD.jpg/300px-%D0%9F%D0%BB%D0%B0%D1%87%D1%83%D1%89%D0%B8%D0%B9_%D0%BA%D0%BE%D1%82_%D1%81_%D0%BF%D0%B0%D0%BB%D1%8C%D1%86%D0%B5%D0%BC_%D0%B2%D0%B2%D0%B5%D1%80%D1%85_%D1%88%D0%B0%D0%B1%D0%BB%D0%BE%D0%BD.jpg)[🙀](https://www.interfax.ru/ftproot/textphotos/2019/05/17/700gc.jpg):
-
-boost_coefficient / #asm_lines * 1000($ в квартал) = 1,96 / 37 * 1000 = 53,1 (-O0)
-
-boost_coefficient / #asm_lines * 1000($ в квартал) = 1,21 / 37 * 1000 = 32,7 (-O3)
+As a result, I managed to increase the performance of the hash table by 36% (with -O1) and 23% (with -O3).
